@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="container mx-auto p-4">
+        <div class="row">
+            <div class="col-md-6">
+                <h1>Edit Catatan</h1>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form id="form-edit">
+                    <input type="hidden" name="idcatatan" id="idcatatan">
+                    <div class="mb-3">
+                        <label for="judul" class="form-label">Masukkan Judul</label>
+                        <input type="text" class="form-control" id="judul" placeholder="Masukkan Judul..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="isi" class="form-label">Masukkan isi</label>
+                        <input type="text" class="form-control" id="isi" placeholder="Masukkan Catatan..." required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <a href="../index.html" class="btn btn-secondary">Kembali</a>
+                </form>
+                <div class="loading" id="loading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div class="error" style="color:red; display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+
+        //ambil id dari url query
+        function getIdFromURL() {
+            const queryString = window.location.search;
+            console.log('Query String:', queryString);
+
+            // gunakan URLSearchParams untuk mengambil parameter id
+            const urlParams = new URLSearchParams(queryString);
+            const id = urlParams.get('id');
+
+            console.log('ID = ', id);
+            return id;
+        }
+
+        async function ambilDetailCatatan($id) {
+            try {
+                showLoading(true);
+
+                const response = await fetch(`${API_URL}/catatan/${$id}`);
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error("catatan tidak ditemukan");
+                    }
+                    throw new Error("gagal mengambil data");
+                }
+
+                const catatan = await response.json();
+                return catatan;
+
+            } catch (error) {
+                showError(error.message);
+                throw error;
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function fillOldValue(catatan) {
+            document.getElementById('idcatatan').value = catatan.id;
+            document.getElementById('judul').value = catatan.judul;
+            document.getElementById('isi').value = catatan.isi;
+        }
+
+        // update
+        async function updateCatatan(id, judul, isi) {
+            try {
+                const response = await fetch(`${API_URL}/catatan/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ judul, isi })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || "gagal memperbarui data");
+                }
+
+                const result = await response.json();
+                alert("Catatan berhasil diperbarui");
+
+                // back index
+                window.location.href = '../index.html';
+            } catch (error) {
+                alert('Gagal udpate: ', error.message);
+                console.error('Error updating catatan:', error);
+            }
+        }
+
+        // UI
+        function showLoading(show) {
+            const loadingEl = document.getElementById('loading');
+            const formEl = document.getElementById('form-edit');
+
+            if (!loadingEl || !formEl) {
+                console.warn('loading / form gk temu');
+                return;
+            }
+
+            if (show) {
+                loadingEl.style.display = 'block';
+                formEl.style.display = 'none';
+            } else {
+                loadingEl.style.display = 'none';
+                formEl.style.display = 'block';
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+
+            if (!errorEl) {
+                console.error("Element error tidak ditemukan");
+                alert(message);
+                return;
+            }
+            errorEl.style.display = 'block';
+            errorEl.textContent = message;
+        }
+
+        async function initEditPage() {
+            const id = getIdFromURL();
+
+            // validasi id
+            if (!id) {
+                showError("ID catatan tidak ditemukan di URL");
+                return;
+            }
+
+            try {
+                const catatan = await ambilDetailCatatan(id);
+                fillOldValue(catatan);
+                // setup form submit handler
+                setupFormHandler();
+
+            } catch (error) {
+                showError("Gagal mengambil detail catatan");
+                setTimeout(() => {
+                    window.location.href = '../index.html';
+                }, 3000);
+            }
+        }
+
+        // setup event listener form submit
+        function setupFormHandler() {
+            const form = document.getElementById('form-edit');
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const id = document.getElementById('idcatatan').value;
+                const judul = document.getElementById('judul').value.trim();
+                const isi = document.getElementById('isi').value.trim();  // trim itu ngilangin spasi
+
+                // validasi
+                if (!judul || !isi) {
+                    alert("Judul dan isi tidak boleh kosong");
+                    return;
+                }
+
+                if (!confirm('Simpan?')) {
+                    return
+                }
+
+                // update be
+                await updateCatatan(id, judul, isi);
+            });
+        }
+
+        // DOM 
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initEditPage);
+        } else {
+            initEditPage();
+        }
+
+
+
+    </script>
+</body>
+
+</html>

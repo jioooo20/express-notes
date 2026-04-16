@@ -83,12 +83,20 @@ function tampilkanData(catatan) {
             }
         }
 
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'btn btn-warning';
+        btnEdit.textContent = 'Edit';
+        btnEdit.onclick = async () => {
+            window.location.href = './pages/edit.html?id=' + c.id;
+        }
+
         tr.innerHTML = `
         <td>${c.judul}</td>
         <td>${c.isi}</td>
         <td></td>
         `;
 
+        tr.cells[2].appendChild(btnEdit);
         tr.cells[2].appendChild(btnDelete);
         tbody.appendChild(tr);
 
